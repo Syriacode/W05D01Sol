@@ -23,11 +23,15 @@ import example.org.test.w05d01sol.R;
 
 public class MainActivity extends AppCompatActivity implements MediaController.MediaPlayerControl {
     private ArrayList<Song> songList;
-     ListView lvSongView;
+    ListView lvSongView;
     private MusicService musicService;
     private Intent playIntent;
     private boolean musicBound = false;
     private MusicController controller;
+    private String songTitle = "";
+    public static final int NOTIFY_ID = 1;
+    private boolean paused=false;
+    private boolean playbackPaused=false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         lvSongView = (ListView)findViewById(R.id.lvSongList);
         songList = new ArrayList<Song>();
         getSongList();
+
 
         //sort the data so that the songs are presented alphabetically
         Collections.sort(songList, new Comparator<Song>(){
@@ -53,12 +58,18 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     public void songPicked(View view){
         musicService.setSong(Integer.parseInt(view.getTag().toString()));
         musicService.playSong();
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
+        }
+        controller.show(0);
     }
 
     public boolean onOptionsItemSelected(MenuItem item){
         // respond to menu item
         switch (item.getItemId()){
             case R.id.itActionShuffle:
+                musicService.setShuffle();
                 break;
             case R.id.itActionEnd:
                 stopService(playIntent);
@@ -145,15 +156,6 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         controller.setEnabled(true);
     }
 
-    private void playPrev() {
-        musicService.playPrev();
-        controller.show(0);
-    }
-
-    private void playNext() {
-        musicService.playNext();
-        controller.show(0);
-    }
 
     @Override
     public void start() {
@@ -162,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
 
     @Override
     public void pause() {
+        playbackPaused = true;
         musicService.pausePlayer();
     }
 
@@ -190,6 +193,44 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        paused = true;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(paused){
+            setController();
+            paused=false;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        controller.hide();
+        super.onStop();
+    }
+    private void playNext(){
+        musicService.playNext();
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
+        }
+        controller.show(0);
+    }
+
+    private void playPrev(){
+        musicService.playPrev();
+        if(playbackPaused){
+            setController();
+            playbackPaused=false;
+        }
+        controller.show(0);
+    }
+
+    @Override
     public int getBufferPercentage() {
         return 0;
     }
@@ -213,4 +254,5 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     public int getAudioSessionId() {
         return 0;
     }
+
 }
